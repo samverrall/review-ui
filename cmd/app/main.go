@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/samverrall/text-editor/internal/ui"
+	"github.com/samverrall/review-ui/internal/ui"
 )
 
 func main() {

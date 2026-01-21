@@ -12,8 +12,8 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/samverrall/text-editor/internal/diff"
-	"github.com/samverrall/text-editor/internal/git"
+	"github.com/samverrall/review-ui/internal/diff"
+	"github.com/samverrall/review-ui/internal/git"
 )
 
 type model struct {

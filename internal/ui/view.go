@@ -28,8 +28,8 @@ func (m model) renderWithCursor() string {
 		if m.selectionMode && actualLineNumber >= selStart && actualLineNumber <= selEnd {
 			line = selectionStyle.Render(line)
 		} else if i == m.cursorLine-m.viewport.YOffset {
-			// Highlight cursor line if not in selection
-			line = cursorLineStyle.Render(line)
+			// Highlight cursor line if not in selection and add cursor indicator
+			line = cursorLineStyle.Render("▶ " + line)
 		}
 
 		result = append(result, line)
@@ -38,7 +38,7 @@ func (m model) renderWithCursor() string {
 		key := m.getCommentKey(actualLineNumber)
 		if comments, exists := m.comments[key]; exists {
 			for _, comment := range comments {
-				commentLine := commentStyle.Render(fmt.Sprintf("  💬 %s", comment))
+				commentLine := commentStyle.Render(fmt.Sprintf("💬 %s", comment))
 				result = append(result, commentLine)
 			}
 		}
@@ -67,7 +67,7 @@ func (m model) renderWithCursor() string {
 						if actualLineNumber == end {
 							processedRanges[rangeKey] = true
 							for _, comment := range comments {
-								commentLine := commentStyle.Render(fmt.Sprintf("  💬 [lines %d-%d] %s", start+1, end+1, comment))
+								commentLine := commentStyle.Render(fmt.Sprintf("💬 [lines %d-%d] %s", start+1, end+1, comment))
 								result = append(result, commentLine)
 							}
 						}
@@ -85,10 +85,10 @@ func (m model) renderFileList() string {
 	var b strings.Builder
 
 	// Header
-	headerText := fmt.Sprintf("Select File (%d files)", len(m.changedFiles))
+	headerText := fmt.Sprintf("📂 Select File (%d files)", len(m.changedFiles))
 	header := headerStyle.Render(headerText)
 	if m.width > 0 {
-		header = headerStyle.Width(m.width).Render(headerText)
+		header = headerStyle.Width(m.width - 8).Render(headerText) // Account for modal padding
 	}
 	b.WriteString(header)
 	b.WriteString("\n\n")
@@ -97,38 +97,40 @@ func (m model) renderFileList() string {
 	for i, file := range m.changedFiles {
 		if i == m.fileListCursor {
 			// Highlight the current selection
-			line := cursorLineStyle.Render(fmt.Sprintf("  > %s", file))
+			line := fileListSelectedStyle.Render(fmt.Sprintf("  %s", file))
 			b.WriteString(line)
 		} else {
-			b.WriteString(fmt.Sprintf("    %s", file))
+			line := fileListItemStyle.Render(fmt.Sprintf("  %s", file))
+			b.WriteString(line)
 		}
 		b.WriteString("\n")
 	}
 
 	// Footer
 	b.WriteString("\n")
-	helpText := "j/k: navigate | enter: select | esc: cancel"
+	helpText := "↑↓ navigate | ↵ select | esc cancel"
 	footer := footerStyle.Render(helpText)
 	b.WriteString(footer)
 
-	return b.String()
+	// Wrap in modal container
+	return modalContainer.Render(b.String())
 }
 
 // View renders the current state of the model
 func (m model) View() string {
 	// Handle error state
 	if m.err != nil {
-		return errorStyle.Render(fmt.Sprintf("Error: %v\n\nPress q to quit.", m.err))
+		return modalContainer.Render(errorStyle.Render(fmt.Sprintf("❌ Error: %v\n\nPress q to quit.", m.err)))
 	}
 
 	// Handle no changes state
 	if len(m.changedFiles) == 0 {
-		return infoStyle.Render("No unstaged changes found.\n\nPress q to quit.")
+		return modalContainer.Render(infoStyle.Render("ℹ️  No unstaged changes found.\n\nPress q to quit."))
 	}
 
 	// Handle not ready state (terminal size not yet known)
 	if !m.ready {
-		return "Initializing..."
+		return modalContainer.Render("Initializing...")
 	}
 
 	// Handle file list mode
@@ -136,17 +138,17 @@ func (m model) View() string {
 		return m.renderFileList()
 	}
 
-	// Build main view
+	// Build main view with modal-style centering
 	var b strings.Builder
 
-	// Header: File counter and name
+	// Header: File counter and name (prominent)
 	currentFile := m.changedFiles[m.currentIndex]
-	headerText := fmt.Sprintf("File %d/%d: %s", m.currentIndex+1, len(m.changedFiles), currentFile)
-	header := headerStyle.Render(headerText)
-	if m.width > 0 {
-		header = headerStyle.Width(m.width).Render(headerText)
-	}
+	headerText := fmt.Sprintf("📄 File %d/%d: %s", m.currentIndex+1, len(m.changedFiles), currentFile)
+	header := headerStyle.Width(m.width).Render(headerText)
 	b.WriteString(header)
+	b.WriteString("\n\n")
+
+	// Add some top padding to ensure first lines are visible
 	b.WriteString("\n")
 
 	// Viewport: Diff content with cursor highlighting
@@ -158,10 +160,10 @@ func (m model) View() string {
 		var commentPrompt string
 		if m.commentEndLine >= 0 && m.commentEndLine != m.commentLine {
 			// Range comment
-			commentPrompt = fmt.Sprintf("Adding comment to lines %d-%d:", m.commentLine+1, m.commentEndLine+1)
+			commentPrompt = fmt.Sprintf("💬 Adding comment to lines %d-%d:", m.commentLine+1, m.commentEndLine+1)
 		} else {
 			// Single line comment
-			commentPrompt = fmt.Sprintf("Adding comment to line %d:", m.commentLine+1)
+			commentPrompt = fmt.Sprintf("💬 Adding comment to line %d:", m.commentLine+1)
 		}
 		inputArea := commentInputStyle.Render(
 			fmt.Sprintf("%s\n%s", commentPrompt, m.commentInput.View()),
@@ -178,14 +180,16 @@ func (m model) View() string {
 	}
 
 	// Footer: Help text
-	helpText := "tab: files | n: next | p: prev | j/k: move | v: select | a: comment | s: save | c: copy | q: quit"
+	helpText := "tab files | n next | p prev | jk move | v select | c comment | s save | y copy | q quit"
 	if m.commentMode {
-		helpText = "enter: save | esc: cancel"
+		helpText = "↵ save | esc cancel"
 	} else if m.selectionMode {
-		helpText = "j/k: extend selection | a: comment selection | v/esc: exit selection"
+		helpText = "↑↓ extend selection | 💬 comment selection | v/esc exit selection"
 	}
-	footer := footerStyle.Render(helpText)
+	footer := footerStyle.Width(m.width).Render(helpText)
 	b.WriteString(footer)
 
-	return b.String()
+	// Wrap everything in modal container for centered appearance
+	content := b.String()
+	return content
 }

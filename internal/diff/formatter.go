@@ -6,15 +6,23 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+func headerStyle() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("251")).
+		Background(lipgloss.Color("238")).
+		Padding(0, 1).
+		Width(100)
+}
+
 var (
-	additionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))   // Green
-	deletionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))   // Red
-	hunkStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))   // Cyan
-	headerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // Yellow/Bold
+	additionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("35"))  // Soft green (moon theme)
+	deletionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("167")) // Soft red (moon theme)
+	hunkStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))  // Soft blue (moon theme)
 )
 
 // FormatDiff applies ANSI color formatting to a git diff string
-func FormatDiff(diff string) string {
+func FormatDiff(width int, diff string) string {
 	if diff == "" {
 		return ""
 	}
@@ -33,7 +41,7 @@ func FormatDiff(diff string) string {
 		case strings.HasPrefix(line, "@@"):
 			styledLine = hunkStyle.Render(line)
 		case strings.HasPrefix(line, "diff ") || strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++"):
-			styledLine = headerStyle.Render(line)
+			styledLine = headerStyle().Width(width).Render(line)
 		default:
 			styledLine = line
 		}

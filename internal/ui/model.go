@@ -86,6 +86,11 @@ func (m model) Init() tea.Cmd {
 	return nil
 }
 
+// Width returns the current terminal width
+func (m model) Width() int {
+	return m.width
+}
+
 // getCommentKey generates a unique key for storing comments
 func (m *model) getCommentKey(lineNumber int) string {
 	if m.currentIndex < 0 || m.currentIndex >= len(m.changedFiles) {
@@ -138,7 +143,7 @@ func (m *model) loadDiff(index int) error {
 	}
 
 	// Format the diff with colors
-	formattedDiff := diff.FormatDiff(rawDiff)
+	formattedDiff := diff.FormatDiff(m.width, rawDiff)
 	m.diffs[filename] = formattedDiff
 
 	// Update viewport content
@@ -230,7 +235,7 @@ func (m *model) saveCommentsToFile() error {
 		return fmt.Errorf("failed to save file: %w", err)
 	}
 
-	m.statusMessage = fmt.Sprintf("✓ Saved to %s", filename)
+	m.statusMessage = fmt.Sprintf("💾 Saved to %s", filename)
 	return nil
 }
 
@@ -245,6 +250,6 @@ func (m *model) copyCommentsToClipboard() error {
 		return fmt.Errorf("failed to copy to clipboard: %w", err)
 	}
 
-	m.statusMessage = "✓ Copied to clipboard"
+	m.statusMessage = "📋 Copied to clipboard"
 	return nil
 }

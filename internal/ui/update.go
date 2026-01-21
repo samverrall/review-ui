@@ -14,9 +14,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		// Handle terminal resize
-		headerHeight := 1
-		footerHeight := 1
-		verticalMarginHeight := headerHeight + footerHeight
+		// Account for header (4 lines), footer (3 lines), modal padding (2 lines), and buffer (2 lines)
+		headerHeight := 4
+		footerHeight := 3
+		modalPaddingHeight := 2
+		bufferHeight := 2
+		verticalMarginHeight := headerHeight + footerHeight + modalPaddingHeight + bufferHeight
 
 		if !m.ready {
 			m.viewport.Width = msg.Width
@@ -115,7 +118,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fileListCursor = m.currentIndex
 			return m, nil
 
-		case "a":
+		case "c":
 			// Open comment input at current cursor line or selection
 			m.commentMode = true
 			if m.selectionMode {
@@ -160,7 +163,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 
-		case "c":
+		case "y":
 			// Copy comments to clipboard
 			m.statusMessage = "" // Clear previous status
 			if err := m.copyCommentsToClipboard(); err != nil {

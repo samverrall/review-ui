@@ -17,6 +17,7 @@ import (
 )
 
 type model struct {
+	gitClient      git.GitClient       // Git client for operations
 	changedFiles   []string            // All changed files
 	currentIndex   int                 // Current file index
 	diffs          map[string]string   // Cached formatted diffs
@@ -38,10 +39,15 @@ type model struct {
 	fileListCursor int                 // Current cursor position in file list
 }
 
-// New creates and initializes a new model
+// New creates and initializes a new model with the default git client
 func New() (model, error) {
+	return NewWithGitClient(&realGitClient{})
+}
+
+// NewWithGitClient creates and initializes a new model with a custom git client
+func NewWithGitClient(gitClient git.GitClient) (model, error) {
 	// Check if we're in a git repository
-	isRepo, err := git.IsGitRepo()
+	isRepo, err := gitClient.IsGitRepo()
 	if err != nil {
 		return model{}, fmt.Errorf("failed to check git repository: %w", err)
 	}
@@ -50,7 +56,7 @@ func New() (model, error) {
 	}
 
 	// Get changed files
-	files, err := git.GetChangedFiles()
+	files, err := gitClient.GetChangedFiles()
 	if err != nil {
 		return model{}, fmt.Errorf("failed to get changed files: %w", err)
 	}
@@ -62,6 +68,7 @@ func New() (model, error) {
 	ti.Width = 80
 
 	m := model{
+		gitClient:    gitClient,
 		changedFiles: files,
 		currentIndex: 0,
 		diffs:        make(map[string]string),
@@ -79,6 +86,21 @@ func New() (model, error) {
 	}
 
 	return m, nil
+}
+
+// realGitClient implements GitClient using the actual git package functions
+type realGitClient struct{}
+
+func (r *realGitClient) IsGitRepo() (bool, error) {
+	return git.IsGitRepo()
+}
+
+func (r *realGitClient) GetChangedFiles() ([]string, error) {
+	return git.GetChangedFiles()
+}
+
+func (r *realGitClient) GetFileDiff(filename string) (string, error) {
+	return git.GetFileDiff(filename)
 }
 
 // Init initializes the model (required by Bubbletea)
@@ -137,7 +159,7 @@ func (m *model) loadDiff(index int) error {
 	}
 
 	// Fetch diff from git
-	rawDiff, err := git.GetFileDiff(filename)
+	rawDiff, err := m.gitClient.GetFileDiff(filename)
 	if err != nil {
 		return fmt.Errorf("failed to load diff for %s: %w", filename, err)
 	}

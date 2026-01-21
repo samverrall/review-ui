@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+// GitClient defines the interface for git operations
+type GitClient interface {
+	IsGitRepo() (bool, error)
+	GetChangedFiles() ([]string, error)
+	GetFileDiff(filename string) (string, error)
+}
+
 // IsGitRepo checks if the current directory is inside a git repository
 func IsGitRepo() (bool, error) {
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
@@ -22,12 +29,44 @@ func IsGitRepo() (bool, error) {
 
 // GetChangedFiles returns a list of unstaged changed files and untracked files
 func GetChangedFiles() ([]string, error) {
+	// Get modified/staged files from git status
+	statusFiles, err := getStatusFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get untracked files from git ls-files
+	untrackedFiles, err := getUntrackedFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	// Combine and deduplicate
+	allFiles := make(map[string]bool)
+	for _, file := range statusFiles {
+		allFiles[file] = true
+	}
+	for _, file := range untrackedFiles {
+		allFiles[file] = true
+	}
+
+	// Convert map to slice
+	var files []string
+	for file := range allFiles {
+		files = append(files, file)
+	}
+
+	return files, nil
+}
+
+// getStatusFiles returns modified/staged files from git status --porcelain
+func getStatusFiles() ([]string, error) {
 	cmd := exec.Command("git", "status", "--porcelain")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("failed to get changed files: %w", err)
+		return nil, fmt.Errorf("failed to get status files: %w", err)
 	}
 
 	output := strings.TrimSpace(out.String())
@@ -41,19 +80,59 @@ func GetChangedFiles() ([]string, error) {
 		if len(line) < 3 {
 			continue
 		}
-		// Find the first space after status codes
-		spaceIndex := strings.Index(line, " ")
-		if spaceIndex == -1 || spaceIndex >= len(line)-1 {
+		// Trim leading whitespace
+		line = strings.TrimLeft(line, " \t")
+		if len(line) < 3 {
 			continue
 		}
-		// Extract filename after the status codes
-		filename := strings.TrimSpace(line[spaceIndex:])
-		if filename != "" {
+		// Skip status codes (first 1-2 characters) and find the filename
+		// Status codes are typically 1-2 characters (XY format)
+		var filenameStart int
+		if len(line) > 1 && line[1] == ' ' {
+			// XY file format (e.g., "M file")
+			filenameStart = 2
+		} else if len(line) > 2 && line[2] == ' ' {
+			// XYY file format (though rare, being safe)
+			filenameStart = 3
+		} else {
+			// Fallback: find first space
+			spaceIndex := strings.Index(line, " ")
+			if spaceIndex == -1 {
+				continue
+			}
+			filenameStart = spaceIndex + 1
+		}
+
+		if filenameStart >= len(line) {
+			continue
+		}
+
+		filename := strings.TrimSpace(line[filenameStart:])
+		if filename != "" && !strings.HasSuffix(filename, "/") {
+			// Skip directories (entries ending with /)
 			files = append(files, filename)
 		}
 	}
 
 	return files, nil
+}
+
+// getUntrackedFiles returns untracked files from git ls-files --others
+func getUntrackedFiles() ([]string, error) {
+	cmd := exec.Command("git", "ls-files", "--others", "--exclude-standard")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to get untracked files: %w", err)
+	}
+
+	output := strings.TrimSpace(out.String())
+	if output == "" {
+		return []string{}, nil
+	}
+
+	return strings.Split(output, "\n"), nil
 }
 
 // isFileTracked checks if a file is tracked by git

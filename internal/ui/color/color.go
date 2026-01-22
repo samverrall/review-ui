@@ -13,8 +13,9 @@ const (
 	MoonDarkGray   = lipgloss.Color("238") // Dark gray
 	MoonDarkerGray = lipgloss.Color("235") // Darker gray
 
-	DarkBg     = lipgloss.Color("234") // Very dark background (like VS Code moon)
-	TextColor  = lipgloss.Color("251") // Light text
-	SubtleText = lipgloss.Color("244") // Muted text
-	AccentBg   = lipgloss.Color("236") // Accent background
+	DarkBg       = lipgloss.Color("234") // Very dark background (like VS Code moon)
+	TextColor    = lipgloss.Color("251") // Light text
+	SubtleText   = lipgloss.Color("244") // Muted text
+	AccentBg     = lipgloss.Color("236") // Accent background
+	CursorLineBg = lipgloss.Color("238") // Cursor line background (visibly lighter for cursor visibility)
 )

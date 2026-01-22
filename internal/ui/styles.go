@@ -48,7 +48,7 @@ var (
 
 	// Cursor line style for highlighting the current line
 	cursorLineStyle = lipgloss.NewStyle().
-			Background(color.AccentBg).
+			Background(color.CursorLineBg).
 			Foreground(color.TextColor)
 
 	// Selection style for highlighting selected lines

@@ -24,12 +24,23 @@ func (m model) renderWithCursor() string {
 		// Calculate actual line number in the diff
 		actualLineNumber := m.viewport.YOffset + i
 
+		// Calculate cursor index in visible area
+		cursorIndex := m.cursorLine - m.viewport.YOffset
+
 		// Apply selection highlighting if in selection mode
 		if m.selectionMode && actualLineNumber >= selStart && actualLineNumber <= selEnd {
-			line = selectionStyle.Render(line)
-		} else if i == m.cursorLine-m.viewport.YOffset {
+			// Set width to fill the entire terminal width for consistency
+			line = selectionStyle.Width(m.width).Render(line)
+		} else if cursorIndex >= 0 && cursorIndex < len(lines) && i == cursorIndex {
 			// Highlight cursor line if not in selection and add cursor indicator
-			line = cursorLineStyle.Render("▶ " + line)
+			// Only highlight if cursor is actually visible
+
+			// Create content with cursor indicator
+			content := "▶ " + line
+
+			// Apply cursor line style with full width
+			// The key is to set the width BEFORE rendering so it fills the entire line
+			line = cursorLineStyle.Width(m.width).Render(content)
 		}
 
 		result = append(result, line)

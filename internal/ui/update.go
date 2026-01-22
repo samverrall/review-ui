@@ -180,6 +180,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.err = err
 				}
 			}
+			return m, nil
 
 		case "p":
 			// Previous file
@@ -190,6 +191,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.err = err
 				}
 			}
+			return m, nil
 
 		case "j":
 			// Move cursor down

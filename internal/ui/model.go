@@ -2,6 +2,8 @@ package ui
 
 import (
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	"sort"
 	"strings"
@@ -37,15 +39,28 @@ type model struct {
 	statusMessage  string              // Status message to display to user
 	fileListMode   bool                // Whether we're in file list selection mode
 	fileListCursor int                 // Current cursor position in file list
+	logger         *slog.Logger        // Logger for debug output
 }
 
-// New creates and initializes a new model with the default git client
+// New creates and initializes a new model with the default git client and no logging
 func New() (model, error) {
-	return NewWithGitClient(&realGitClient{})
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	return NewWithLogger(logger)
+}
+
+// NewWithLogger creates and initializes a new model with the default git client and custom logger
+func NewWithLogger(logger *slog.Logger) (model, error) {
+	return newWithGitClientAndLogger(&realGitClient{}, logger)
 }
 
 // NewWithGitClient creates and initializes a new model with a custom git client
 func NewWithGitClient(gitClient git.GitClient) (model, error) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	return newWithGitClientAndLogger(gitClient, logger)
+}
+
+// newWithGitClientAndLogger creates and initializes a new model with a custom git client and logger
+func newWithGitClientAndLogger(gitClient git.GitClient, logger *slog.Logger) (model, error) {
 	// Check if we're in a git repository
 	isRepo, err := gitClient.IsGitRepo()
 	if err != nil {
@@ -76,6 +91,7 @@ func NewWithGitClient(gitClient git.GitClient) (model, error) {
 		commentInput: ti,
 		commentMode:  false,
 		comments:     make(map[string][]string),
+		logger:       logger,
 	}
 
 	// Load first diff if we have files
@@ -165,7 +181,7 @@ func (m *model) loadDiff(index int) error {
 	}
 
 	// Format the diff with colors
-	formattedDiff := diff.FormatDiff(m.width, rawDiff)
+	formattedDiff := diff.FormatDiff(m.width, rawDiff, m.logger)
 	m.diffs[filename] = formattedDiff
 
 	// Update viewport content

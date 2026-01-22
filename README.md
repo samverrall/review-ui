@@ -2,7 +2,7 @@
 
 <center>A terminal user interface (TUI) tool to review uncommited git changes and add comments for export (typically to be supplied back to coding agents)</center>
 
-![Demo](demo/demo.mov)
+https://github.com/user-attachments/assets/e5e6cdcd-16f9-4422-a73f-1a61a0233300
 
 ## Motivation 
 

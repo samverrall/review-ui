@@ -157,9 +157,6 @@ func (m model) View() string {
 	headerText := fmt.Sprintf("📄 File %d/%d: %s", m.currentIndex+1, len(m.changedFiles), currentFile)
 	header := headerStyle.Width(m.width).Render(headerText)
 	b.WriteString(header)
-	b.WriteString("\n\n")
-
-	// Add some top padding to ensure first lines are visible
 	b.WriteString("\n")
 
 	// Viewport: Diff content with cursor highlighting

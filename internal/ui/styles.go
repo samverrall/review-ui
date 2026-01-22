@@ -14,7 +14,7 @@ var (
 			Border(lipgloss.ThickBorder(), false, false, true, false).
 			BorderForeground(color.MoonBlue).
 			Padding(1, 3).
-			Margin(0, 0, 2, 0).
+			Margin(0, 0, 0, 0).
 			Align(lipgloss.Center)
 
 	// Footer style for the help text at the bottom
@@ -24,7 +24,7 @@ var (
 			Border(lipgloss.NormalBorder(), true, false, false, false).
 			BorderForeground(color.MoonDarkGray).
 			Padding(0, 2).
-			Margin(2, 0, 0, 0).
+			Margin(0, 0, 0, 0).
 			Align(lipgloss.Center)
 
 	// Error style for error messages
